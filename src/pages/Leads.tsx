@@ -90,6 +90,7 @@ const readyToInviteData = [
     linkedinProfileImageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
     personalizedMessage: "Hi Sarah, I noticed your impressive work at TechVentures and would love to connect about AI automation solutions.",
     messageStatus: "waiting_for_review",
+    connectionSent: false,
     score: 92,
   },
   {
@@ -101,6 +102,7 @@ const readyToInviteData = [
     linkedinProfileImageUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop",
     personalizedMessage: "Hi David, as a fellow tech leader, I thought you might be interested in our AI-powered lead automation platform.",
     messageStatus: "sent",
+    connectionSent: true,
     score: 88,
   },
   {
@@ -112,6 +114,7 @@ const readyToInviteData = [
     linkedinProfileImageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
     personalizedMessage: "Hi Lisa, I came across your profile and was impressed by CloudScale's growth. Would love to discuss how we can help scale your outreach.",
     messageStatus: "waiting_for_review",
+    connectionSent: false,
     score: 85,
   },
 ];
