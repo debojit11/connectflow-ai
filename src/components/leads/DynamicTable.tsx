@@ -11,10 +11,21 @@ interface DynamicTableProps {
   showSendAction?: boolean;
 }
 
-const IMAGE_FIELD_KEY = "linkedinProfileImageUrl";
+const IMAGE_FIELD_PATTERNS = ["linkedinprofileimageurl", "linkedinprofileimageurn", "profileimage", "imageurl", "avatar"];
 const STATUS_FIELDS = ["status", "aistatus", "approvalstatus"];
 const MESSAGE_STATUS_FIELD = "messagestatus";
 const PERSONALIZED_MESSAGE_FIELD = "personalizedmessage";
+
+function findImageFieldKey(row: Record<string, unknown>): string | null {
+  const keys = Object.keys(row);
+  for (const key of keys) {
+    const lowerKey = key.toLowerCase();
+    if (IMAGE_FIELD_PATTERNS.some(pattern => lowerKey.includes(pattern))) {
+      return key;
+    }
+  }
+  return null;
+}
 
 function isStatusField(fieldName: string): boolean {
   const lowerName = fieldName.toLowerCase();
@@ -140,17 +151,19 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
   const [sendingRows, setSendingRows] = useState<Set<string>>(new Set());
   const itemsPerPage = 10;
 
-  // Check if data has image field
-  const hasImageField = useMemo(() => {
-    if (data.length === 0) return false;
-    return IMAGE_FIELD_KEY in data[0];
+  // Find the image field key dynamically (case-insensitive)
+  const imageFieldKey = useMemo(() => {
+    if (data.length === 0) return null;
+    return findImageFieldKey(data[0]);
   }, [data]);
+
+  const hasImageField = imageFieldKey !== null;
 
   // Extract columns from data, excluding the image field (it will be first column separately)
   const columns = useMemo(() => {
     if (data.length === 0) return [];
-    return Object.keys(data[0]).filter((key) => key !== IMAGE_FIELD_KEY);
-  }, [data]);
+    return Object.keys(data[0]).filter((key) => key !== imageFieldKey);
+  }, [data, imageFieldKey]);
 
   // Filter and sort data
   const processedData = useMemo(() => {
@@ -303,7 +316,7 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
               {paginatedData.map((row) => {
                 const rowId = String(row.id);
                 const isSending = sendingRows.has(rowId);
-                const imageUrl = row[IMAGE_FIELD_KEY] as string | undefined;
+                const imageUrl = imageFieldKey ? row[imageFieldKey] as string | undefined : undefined;
 
                 return (
                   <tr
