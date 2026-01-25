@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Loader2, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,24 +11,10 @@ interface DynamicTableProps {
   showSendAction?: boolean;
 }
 
-const IMAGE_FIELD_PATTERNS = [
-  "linkedinprofileimageurl",
-  "linkedinprofileimageurn",
-  "profileimage",
-  "imageurl",
-  "avatar",
-  "photo",
-  "picture",
-];
-
+const IMAGE_FIELD_KEY = "linkedinProfileImageUrl";
 const STATUS_FIELDS = ["status", "aistatus", "approvalstatus"];
 const MESSAGE_STATUS_FIELD = "messagestatus";
 const PERSONALIZED_MESSAGE_FIELD = "personalizedmessage";
-
-function isImageField(fieldName: string): boolean {
-  const lowerName = fieldName.toLowerCase();
-  return IMAGE_FIELD_PATTERNS.some((pattern) => lowerName.includes(pattern));
-}
 
 function isStatusField(fieldName: string): boolean {
   const lowerName = fieldName.toLowerCase();
@@ -42,6 +28,7 @@ function getStatusBadgeClass(value: string): string {
   if (lowerValue.includes("pending") || lowerValue === "pending") return "badge-pending";
   if (lowerValue.includes("waiting") || lowerValue === "waiting_for_review") return "badge-waiting";
   if (lowerValue.includes("sent") || lowerValue === "sent") return "badge-sent";
+  if (lowerValue.includes("sending") || lowerValue === "sending") return "badge-pending";
   if (lowerValue.includes("failed") || lowerValue === "failed") return "badge-failed";
   return "badge-pending";
 }
@@ -79,6 +66,72 @@ function MessageCell({
   );
 }
 
+function AvatarCell({ src }: { src: string }) {
+  return (
+    <img
+      src={src}
+      alt="Profile"
+      className="w-10 h-10 rounded-full object-cover bg-muted flex-shrink-0"
+      onError={(e) => {
+        (e.target as HTMLImageElement).src = "/placeholder.svg";
+      }}
+    />
+  );
+}
+
+function ActionCell({
+  row,
+  isSending,
+  onSendInvite,
+}: {
+  row: Record<string, unknown>;
+  isSending: boolean;
+  onSendInvite: (row: Record<string, unknown>) => void;
+}) {
+  const messageStatus = String(row.messageStatus || "").toLowerCase();
+  const connectionSent = Boolean(row.connectionSent);
+
+  // Already sent - show badge
+  if (connectionSent) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/20 text-success text-xs font-medium">
+        <Check className="w-3 h-3" />
+        Sent
+      </span>
+    );
+  }
+
+  // Currently sending - show disabled button
+  if (messageStatus === "sending" || isSending) {
+    return (
+      <Button
+        size="sm"
+        disabled
+        className="gap-2 bg-primary/50 text-primary-foreground cursor-not-allowed"
+      >
+        <Loader2 className="w-3 h-3 animate-spin" />
+        Sending…
+      </Button>
+    );
+  }
+
+  // Ready to send - show active button
+  if (messageStatus === "waiting_for_review") {
+    return (
+      <Button
+        size="sm"
+        onClick={() => onSendInvite(row)}
+        className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+      >
+        Send Invite
+      </Button>
+    );
+  }
+
+  // Default: no action available
+  return <span className="text-muted-foreground text-xs">—</span>;
+}
+
 export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendAction }: DynamicTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<string | null>(null);
@@ -87,10 +140,16 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
   const [sendingRows, setSendingRows] = useState<Set<string>>(new Set());
   const itemsPerPage = 10;
 
-  // Extract columns from data
+  // Check if data has image field
+  const hasImageField = useMemo(() => {
+    if (data.length === 0) return false;
+    return IMAGE_FIELD_KEY in data[0];
+  }, [data]);
+
+  // Extract columns from data, excluding the image field (it will be first column separately)
   const columns = useMemo(() => {
     if (data.length === 0) return [];
-    return Object.keys(data[0]);
+    return Object.keys(data[0]).filter((key) => key !== IMAGE_FIELD_KEY);
   }, [data]);
 
   // Filter and sort data
@@ -137,7 +196,7 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
   };
 
   const handleSendInvite = async (row: Record<string, unknown>) => {
-    const rowId = String(row.id || row.Id || Object.values(row)[0]);
+    const rowId = String(row.id);
     setSendingRows((prev) => new Set(prev).add(rowId));
     try {
       await onSendInvite?.(row);
@@ -152,22 +211,8 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
 
   const renderCell = (row: Record<string, unknown>, column: string) => {
     const value = row[column];
-    const rowId = String(row.id || row.Id || Object.values(row)[0]);
+    const rowId = String(row.id);
     const lowerColumn = column.toLowerCase();
-
-    // Image fields
-    if (isImageField(column) && value) {
-      return (
-        <img
-          src={String(value)}
-          alt="Profile"
-          className="w-10 h-10 rounded-full object-cover bg-muted"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = "/placeholder.svg";
-          }}
-        />
-      );
-    }
 
     // Status fields
     if (isStatusField(column)) {
@@ -193,7 +238,7 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
     // Default text
     return (
       <span className="truncate max-w-[200px] block" title={String(value)}>
-        {String(value ?? "-")}
+        {String(value ?? "—")}
       </span>
     );
   };
@@ -228,6 +273,10 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
+                {/* Avatar column header (first) */}
+                {hasImageField && (
+                  <th className="table-header-cell w-14"></th>
+                )}
                 {columns.map((column) => (
                   <th
                     key={column}
@@ -246,41 +295,46 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
                     </div>
                   </th>
                 ))}
+                {/* Action column header (last, UI-only) */}
                 {showSendAction && <th className="table-header-cell">Action</th>}
               </tr>
             </thead>
             <tbody>
-              {paginatedData.map((row, rowIndex) => {
-                const rowId = String(row.id || row.Id || rowIndex);
+              {paginatedData.map((row) => {
+                const rowId = String(row.id);
                 const isSending = sendingRows.has(rowId);
+                const imageUrl = row[IMAGE_FIELD_KEY] as string | undefined;
 
                 return (
                   <tr
                     key={rowId}
                     className="border-b border-border last:border-b-0 hover:bg-accent/30 transition-colors"
                   >
+                    {/* Avatar cell (first) */}
+                    {hasImageField && (
+                      <td className="table-cell w-14">
+                        {imageUrl ? (
+                          <AvatarCell src={String(imageUrl)} />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs">
+                            ?
+                          </div>
+                        )}
+                      </td>
+                    )}
                     {columns.map((column) => (
                       <td key={column} className="table-cell">
                         {renderCell(row, column)}
                       </td>
                     ))}
+                    {/* Action cell (last, UI-only) */}
                     {showSendAction && (
                       <td className="table-cell">
-                        <Button
-                          size="sm"
-                          onClick={() => handleSendInvite(row)}
-                          disabled={isSending}
-                          className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-                        >
-                          {isSending ? (
-                            <>
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              Sending...
-                            </>
-                          ) : (
-                            "Send Invite"
-                          )}
-                        </Button>
+                        <ActionCell
+                          row={row}
+                          isSending={isSending}
+                          onSendInvite={handleSendInvite}
+                        />
                       </td>
                     )}
                   </tr>
