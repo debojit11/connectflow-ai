@@ -90,7 +90,7 @@ function AvatarCell({ src, name }: { src: string; name?: string }) {
     <img
       src={imgSrc}
       alt={name ? `${name} profile` : "Profile"}
-      className="w-10 h-10 rounded-full object-cover bg-muted flex-shrink-0"
+      className="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-border shadow-sm bg-card"
       onError={(e) => {
         (e.target as HTMLImageElement).src = "/placeholder.svg";
       }}
