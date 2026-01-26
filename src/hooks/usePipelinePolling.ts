@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { pipelineApi } from "@/lib/api";
 
 export interface PipelineStatus {
   jobType: "acquisition" | "evaluation" | "message_generation" | null;
@@ -21,9 +22,9 @@ export function usePipelinePolling(options: UsePipelinePollingOptions = {}) {
     jobType: null,
     status: null,
     steps: [
-      { name: "Scraping", status: "completed" },
-      { name: "AI Evaluation", status: "completed" },
-      { name: "Message Generation", status: "running" },
+      { name: "Scraping", status: "pending" },
+      { name: "AI Evaluation", status: "pending" },
+      { name: "Message Generation", status: "pending" },
       { name: "Ready for Review", status: "pending" },
     ],
   });
@@ -55,30 +56,21 @@ export function usePipelinePolling(options: UsePipelinePollingOptions = {}) {
   const fetchPipelineStatus = useCallback(async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch("/pipeline/status");
-      // const data = await response.json();
+      const response = await pipelineApi.getStatus();
       
-      // Mock response for now
-      const mockData: PipelineStatus = {
-        jobType: "message_generation",
-        status: "running",
-        steps: [
-          { name: "Scraping", status: "completed" },
-          { name: "AI Evaluation", status: "completed" },
-          { name: "Message Generation", status: "running" },
-          { name: "Ready for Review", status: "pending" },
-        ],
-      };
-      
-      setPipelineStatus(mockData);
-      
-      // Check if we should stop polling
-      if (shouldStopPolling(mockData)) {
-        stopPolling();
+      if (response.data) {
+        setPipelineStatus(response.data);
+        
+        // Check if we should stop polling
+        if (shouldStopPolling(response.data)) {
+          stopPolling();
+        }
+        
+        return response.data;
       }
       
-      return mockData;
+      console.error("Failed to fetch pipeline status:", response.error);
+      return null;
     } catch (error) {
       console.error("Failed to fetch pipeline status:", error);
       return null;
@@ -86,6 +78,25 @@ export function usePipelinePolling(options: UsePipelinePollingOptions = {}) {
       setIsLoading(false);
     }
   }, [shouldStopPolling]);
+
+  // Start pipeline
+  const startPipeline = useCallback(async () => {
+    try {
+      const response = await pipelineApi.start();
+      
+      if (response.error) {
+        console.error("Failed to start pipeline:", response.error);
+        return false;
+      }
+      
+      // Immediately fetch status after starting
+      await fetchPipelineStatus();
+      return true;
+    } catch (error) {
+      console.error("Failed to start pipeline:", error);
+      return false;
+    }
+  }, [fetchPipelineStatus]);
 
   // Start polling
   const startPolling = useCallback(() => {
@@ -122,12 +133,18 @@ export function usePipelinePolling(options: UsePipelinePollingOptions = {}) {
     return () => stopPolling();
   }, [enabled, isPipelineActive, isPolling, startPolling, stopPolling]);
 
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchPipelineStatus();
+  }, []);
+
   return {
     pipelineStatus,
     isPipelineActive,
     isPolling,
     isLoading,
     refresh,
+    startPipeline,
     startPolling,
     stopPolling,
   };

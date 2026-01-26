@@ -66,7 +66,7 @@ export default function Leads() {
             >
               Approved
               <span className="ml-2 px-2 py-0.5 rounded-full bg-muted text-xs">
-                {approvedLeads.filter(l => l.aiStatus === "Approved").length}
+                {approvedLeads.length}
               </span>
             </TabsTrigger>
             <TabsTrigger
@@ -94,7 +94,7 @@ export default function Leads() {
 
           <TabsContent value="approved" className="animate-fade-in">
             <DynamicTable 
-              data={approvedLeads.filter(l => l.aiStatus === "Approved")} 
+              data={approvedLeads} 
               onRefresh={refreshAll}
               isLoading={isLoading}
             />

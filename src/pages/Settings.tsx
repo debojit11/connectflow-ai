@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { userApi } from "@/lib/api";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -32,13 +33,7 @@ export default function Settings() {
     setIsUpdatingProfile(true);
     
     try {
-      // TODO: Replace with actual API call
-      // await fetch("/user/update-profile", {
-      //   method: "PUT",
-      //   body: JSON.stringify(accountInfo),
-      // });
-      
-      // Simulate API delay
+      // TODO: Add PUT /user/update-profile endpoint when available
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
       toast({
@@ -71,17 +66,19 @@ export default function Settings() {
     setIsResettingPassword(true);
     
     try {
-      // TODO: Replace with actual API call
-      // await fetch("/user/reset-password", {
-      //   method: "PUT",
-      //   body: JSON.stringify({
-      //     currentPassword: passwordForm.currentPassword,
-      //     newPassword: passwordForm.newPassword,
-      //   }),
-      // });
-      
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await userApi.resetPassword(
+        passwordForm.currentPassword,
+        passwordForm.newPassword
+      );
+
+      if (response.error) {
+        toast({
+          title: "Reset Failed",
+          description: response.error,
+          variant: "destructive",
+        });
+        return;
+      }
       
       setPasswordForm({
         currentPassword: "",
@@ -109,19 +106,16 @@ export default function Settings() {
     
     try {
       // Clear token from localStorage
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("user");
-      
-      // Simulate logout delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      localStorage.removeItem("token");
+      localStorage.removeItem("auth_user");
       
       toast({
         title: "Logged Out",
         description: "You have been logged out successfully.",
       });
       
-      // Redirect to login (or home for now)
-      navigate("/");
+      // Redirect to auth
+      navigate("/auth");
     } catch (error) {
       toast({
         title: "Logout Failed",
