@@ -1,24 +1,26 @@
-import { Users, UserCheck, Send } from "lucide-react";
+import { Users, UserCheck, Send, RefreshCw } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { AutomationCard } from "@/components/dashboard/AutomationCard";
 import { PipelineProgress } from "@/components/dashboard/PipelineProgress";
-
-const metrics = [
-  { title: "Total Leads Generated", value: 12847, icon: Users, trend: { value: 12.5, positive: true } },
-  { title: "AI Approved Leads", value: 8432, icon: UserCheck, trend: { value: 8.2, positive: true } },
-  { title: "Invitations Sent", value: 3256, icon: Send, trend: { value: 15.3, positive: true } },
-];
-
-const pipelineSteps = [
-  { name: "Scraping", status: "completed" as const },
-  { name: "AI Evaluation", status: "completed" as const },
-  { name: "Message Generation", status: "running" as const },
-  { name: "Ready for Review", status: "pending" as const },
-  { name: "Invitations Sent", status: "pending" as const },
-];
+import { Button } from "@/components/ui/button";
+import { usePipelinePolling } from "@/hooks/usePipelinePolling";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 
 export default function Dashboard() {
+  const { pipelineStatus, isPipelineActive, isLoading: isPipelineLoading, refresh: refreshPipeline } = usePipelinePolling();
+  const { stats, isLoading: isStatsLoading, refresh: refreshStats } = useDashboardStats();
+
+  const metrics = [
+    { title: "Total Leads Generated", value: stats.totalLeadsGenerated, icon: Users, trend: { value: 12.5, positive: true } },
+    { title: "AI Approved Leads", value: stats.aiApprovedLeads, icon: UserCheck, trend: { value: 8.2, positive: true } },
+    { title: "Invitations Sent", value: stats.invitesSent, icon: Send },
+  ];
+
+  const handleRefreshPipeline = async () => {
+    await Promise.all([refreshPipeline(), refreshStats()]);
+  };
+
   return (
     <AppLayout>
       <div className="space-y-8 animate-fade-in">
@@ -45,7 +47,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Automation Card */}
           <div className="lg:col-span-2 animate-slide-up" style={{ animationDelay: "300ms" }}>
-            <AutomationCard />
+            <AutomationCard disabled={isPipelineActive} />
           </div>
 
           {/* Pipeline Progress */}
@@ -53,8 +55,20 @@ export default function Dashboard() {
             className="rounded-2xl bg-card border border-border p-6 glow-effect animate-slide-up"
             style={{ animationDelay: "400ms" }}
           >
-            <h3 className="text-lg font-semibold text-foreground mb-6">Pipeline Status</h3>
-            <PipelineProgress steps={pipelineSteps} />
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-foreground">Pipeline Status</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshPipeline}
+                disabled={isPipelineLoading}
+                className="gap-2 border-border hover:bg-accent"
+              >
+                <RefreshCw className={`w-4 h-4 ${isPipelineLoading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
+            <PipelineProgress steps={pipelineStatus.steps} />
           </div>
         </div>
       </div>

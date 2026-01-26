@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Loader2, Check } from "lucide-react";
+import { Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Loader2, Check, X, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,12 +8,16 @@ interface DynamicTableProps {
   data: Record<string, unknown>[];
   onSendInvite?: (row: Record<string, unknown>) => Promise<void>;
   onMessageUpdate?: (rowId: string, message: string) => void;
+  onRefresh?: () => void;
   showSendAction?: boolean;
+  isLoading?: boolean;
+  isSendingAny?: boolean;
 }
 
 const IMAGE_FIELD_PATTERNS = ["linkedinprofileimageurl", "linkedinprofileimageurn", "profileimage", "imageurl", "avatar"];
 const STATUS_FIELDS = ["status", "aistatus", "approvalstatus"];
 const MESSAGE_STATUS_FIELD = "messagestatus";
+const CONNECTION_STATUS_FIELD = "connectionstatus";
 const PERSONALIZED_MESSAGE_FIELD = "personalizedmessage";
 
 function findImageFieldKey(row: Record<string, unknown>): string | null {
@@ -40,7 +44,7 @@ function getStatusBadgeClass(value: string): string {
   if (lowerValue.includes("waiting") || lowerValue === "waiting_for_review") return "badge-waiting";
   if (lowerValue.includes("sent") || lowerValue === "sent") return "badge-sent";
   if (lowerValue.includes("sending") || lowerValue === "sending") return "badge-pending";
-  if (lowerValue.includes("failed") || lowerValue === "failed") return "badge-failed";
+  if (lowerValue.includes("failed") || lowerValue === "failed" || lowerValue === "not_sent") return "badge-failed";
   return "badge-pending";
 }
 
@@ -92,18 +96,17 @@ function AvatarCell({ src }: { src: string }) {
 
 function ActionCell({
   row,
-  isSending,
+  isSendingAny,
   onSendInvite,
 }: {
   row: Record<string, unknown>;
-  isSending: boolean;
+  isSendingAny: boolean;
   onSendInvite: (row: Record<string, unknown>) => void;
 }) {
-  const messageStatus = String(row.messageStatus || "").toLowerCase();
-  const connectionSent = Boolean(row.connectionSent);
+  const connectionStatus = String(row.connectionStatus || "").toLowerCase();
 
-  // Already sent - show badge
-  if (connectionSent) {
+  // Sent - show sent icon
+  if (connectionStatus === "sent") {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/20 text-success text-xs font-medium">
         <Check className="w-3 h-3" />
@@ -112,27 +115,37 @@ function ActionCell({
     );
   }
 
-  // Currently sending - show disabled button
-  if (messageStatus === "sending" || isSending) {
+  // Not sent / error - show error icon
+  if (connectionStatus === "not_sent") {
     return (
-      <Button
-        size="sm"
-        disabled
-        className="gap-2 bg-primary/50 text-primary-foreground cursor-not-allowed"
-      >
-        <Loader2 className="w-3 h-3 animate-spin" />
-        Sending…
-      </Button>
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-destructive/20 text-destructive text-xs font-medium">
+        <X className="w-3 h-3" />
+        Failed
+      </span>
     );
   }
 
-  // Ready to send - show active button
-  if (messageStatus === "waiting_for_review") {
+  // Currently sending - show spinner
+  if (connectionStatus === "sending") {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span className="text-xs">Sending...</span>
+      </div>
+    );
+  }
+
+  // Waiting for review - show send button (disable all if any is sending)
+  if (connectionStatus === "waiting_for_review") {
     return (
       <Button
         size="sm"
         onClick={() => onSendInvite(row)}
-        className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+        disabled={isSendingAny}
+        className={cn(
+          "gap-2 bg-primary hover:bg-primary/90 text-primary-foreground",
+          isSendingAny && "opacity-50 cursor-not-allowed"
+        )}
       >
         Send Invite
       </Button>
@@ -143,12 +156,19 @@ function ActionCell({
   return <span className="text-muted-foreground text-xs">—</span>;
 }
 
-export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendAction }: DynamicTableProps) {
+export function DynamicTable({ 
+  data, 
+  onSendInvite, 
+  onMessageUpdate, 
+  onRefresh,
+  showSendAction,
+  isLoading = false,
+  isSendingAny = false,
+}: DynamicTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
-  const [sendingRows, setSendingRows] = useState<Set<string>>(new Set());
   const itemsPerPage = 10;
 
   // Find the image field key dynamically (case-insensitive)
@@ -214,17 +234,7 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
   };
 
   const handleSendInvite = async (row: Record<string, unknown>) => {
-    const rowId = String(row.id);
-    setSendingRows((prev) => new Set(prev).add(rowId));
-    try {
-      await onSendInvite?.(row);
-    } finally {
-      setSendingRows((prev) => {
-        const next = new Set(prev);
-        next.delete(rowId);
-        return next;
-      });
-    }
+    await onSendInvite?.(row);
   };
 
   const renderCell = (row: Record<string, unknown>, column: string) => {
@@ -237,8 +247,8 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
       return <span className={getStatusBadgeClass(String(value))}>{String(value)}</span>;
     }
 
-    // Message status
-    if (lowerColumn === MESSAGE_STATUS_FIELD) {
+    // Message status or connection status
+    if (lowerColumn === MESSAGE_STATUS_FIELD || lowerColumn === CONNECTION_STATUS_FIELD) {
       return <span className={getStatusBadgeClass(String(value))}>{String(value)}</span>;
     }
 
@@ -263,26 +273,70 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
 
   if (data.length === 0) {
     return (
-      <div className="rounded-2xl bg-card border border-border p-12 text-center">
-        <p className="text-muted-foreground">No data available</p>
+      <div className="space-y-4">
+        {/* Search with Refresh */}
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-10 bg-input border-border"
+            />
+          </div>
+          {onRefresh && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRefresh}
+              disabled={isLoading}
+              className="gap-2 border-border hover:bg-accent"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          )}
+        </div>
+        
+        <div className="rounded-2xl bg-card border border-border p-12 text-center">
+          <p className="text-muted-foreground">No data available</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search..."
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="pl-10 bg-input border-border"
-        />
+      {/* Search with Refresh */}
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="pl-10 bg-input border-border"
+          />
+        </div>
+        {onRefresh && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            disabled={isLoading}
+            className="gap-2 border-border hover:bg-accent"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+            Refresh Leads
+          </Button>
+        )}
       </div>
 
       {/* Table */}
@@ -320,7 +374,6 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
             <tbody>
               {paginatedData.map((row) => {
                 const rowId = String(row.id);
-                const isSending = sendingRows.has(rowId);
                 const imageUrl = imageFieldKey ? row[imageFieldKey] as string | undefined : undefined;
 
                 return (
@@ -350,7 +403,7 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
                       <td className="table-cell">
                         <ActionCell
                           row={row}
-                          isSending={isSending}
+                          isSendingAny={isSendingAny}
                           onSendInvite={handleSendInvite}
                         />
                       </td>
