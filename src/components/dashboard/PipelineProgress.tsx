@@ -12,8 +12,11 @@ interface PipelineProgressProps {
 }
 
 export function PipelineProgress({ steps }: PipelineProgressProps) {
+  // Safety fallback in case steps is undefined
+  const safeSteps = steps ?? [];
+  
   // Filter out "Invitations Sent" step if present
-  const filteredSteps = steps.filter(
+  const filteredSteps = safeSteps.filter(
     (step) => step.name.toLowerCase() !== "invitations sent"
   );
 

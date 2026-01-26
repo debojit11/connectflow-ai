@@ -117,10 +117,6 @@ export const pipelineApi = {
     api<{
       jobType: "acquisition" | "evaluation" | "message_generation" | null;
       status: "pending" | "running" | "completed" | "failed" | null;
-      steps: Array<{
-        name: string;
-        status: "pending" | "running" | "completed";
-      }>;
     }>("/pipeline/status"),
 };
 
