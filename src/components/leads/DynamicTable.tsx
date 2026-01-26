@@ -153,8 +153,13 @@ export function DynamicTable({ data, onSendInvite, onMessageUpdate, showSendActi
 
   // Find the image field key dynamically (case-insensitive)
   const imageFieldKey = useMemo(() => {
-    if (data.length === 0) return null;
-    return findImageFieldKey(data[0]);
+    for (const row of data) {
+      const key = findImageFieldKey(row);
+      if (key && row[key]) {
+        return key;
+      }
+    }
+    return null;
   }, [data]);
 
   const hasImageField = imageFieldKey !== null;
