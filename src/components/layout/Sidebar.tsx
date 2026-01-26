@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { LayoutDashboard, Users, Settings, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navItems = [
   { name: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -57,8 +58,9 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border">
-        <div className="px-3 py-2 text-xs text-sidebar-foreground">
-          <p>Version 1.0.0</p>
+        <div className="flex items-center justify-between px-3 py-2">
+          <p className="text-xs text-sidebar-foreground">Version 1.0.0</p>
+          <ThemeToggle />
         </div>
       </div>
     </aside>
