@@ -1,103 +1,31 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Mail, Lock, User, Loader2, Zap, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Zap } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SignInForm } from "@/components/auth/SignInForm";
+import { SignUpForm } from "@/components/auth/SignUpForm";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 
-type AuthMode = "signin" | "signup";
+type AuthTab = "signin" | "signup" | "forgot";
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [mode, setMode] = useState<AuthMode>("signin");
-  const [isLoading, setIsLoading] = useState(false);
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<AuthTab>("signin");
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      if (mode === "signup") {
-        if (formData.password !== formData.confirmPassword) {
-          toast({
-            title: "Passwords Don't Match",
-            description: "Please ensure both passwords match.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        if (formData.password.length < 6) {
-          toast({
-            title: "Password Too Short",
-            description: "Password must be at least 6 characters.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        // TODO: Replace with actual signup API call
-        // await fetch("/auth/signup", {
-        //   method: "POST",
-        //   body: JSON.stringify({
-        //     name: formData.name,
-        //     email: formData.email,
-        //     password: formData.password,
-        //   }),
-        // });
-
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        toast({
-          title: "Account Created",
-          description: "Welcome to Competitive AI!",
-        });
-
-        localStorage.setItem("auth_token", "demo_token");
-        localStorage.setItem("user", JSON.stringify({ name: formData.name, email: formData.email }));
-        navigate("/");
-      } else {
-        // TODO: Replace with actual signin API call
-        // await fetch("/auth/signin", {
-        //   method: "POST",
-        //   body: JSON.stringify({
-        //     email: formData.email,
-        //     password: formData.password,
-        //   }),
-        // });
-
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        toast({
-          title: "Welcome Back",
-          description: "Successfully signed in.",
-        });
-
-        localStorage.setItem("auth_token", "demo_token");
-        localStorage.setItem("user", JSON.stringify({ email: formData.email }));
-        navigate("/");
-      }
-    } catch (error) {
-      toast({
-        title: mode === "signin" ? "Sign In Failed" : "Sign Up Failed",
-        description: "Please check your credentials and try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
+      navigate(from, { replace: true });
     }
+  }, [navigate, location]);
+
+  const handleAuthSuccess = () => {
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
+    navigate(from, { replace: true });
   };
 
   return (
@@ -158,116 +86,66 @@ export default function Auth() {
               <span className="text-xl font-semibold text-foreground">Competitive AI</span>
             </div>
 
-            <div className="text-center lg:text-left">
-              <h1 className="text-2xl font-bold text-foreground">
-                {mode === "signin" ? "Welcome back" : "Create your account"}
-              </h1>
-              <p className="text-muted-foreground mt-2">
-                {mode === "signin"
-                  ? "Enter your credentials to access your dashboard"
-                  : "Get started with your AI-powered lead automation"}
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {mode === "signup" && (
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-foreground">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="name"
-                      placeholder="John Doe"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="pl-10 bg-input border-border h-11"
-                      required
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-foreground">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@company.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="pl-10 bg-input border-border h-11"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-foreground">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="pl-10 bg-input border-border h-11"
-                    required
-                  />
-                </div>
-              </div>
-
-              {mode === "signup" && (
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-foreground">Confirm Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      className="pl-10 bg-input border-border h-11"
-                      required
-                    />
-                  </div>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {mode === "signin" ? "Signing in..." : "Creating account..."}
-                  </>
-                ) : (
-                  <>
-                    {mode === "signin" ? "Sign In" : "Create Account"}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </Button>
-            </form>
-
-            <div className="text-center">
-              <p className="text-muted-foreground">
-                {mode === "signin" ? "Don't have an account?" : "Already have an account?"}{" "}
-                <button
-                  type="button"
-                  onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-                  className="text-primary hover:text-primary/80 font-medium transition-colors"
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as AuthTab)} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 bg-muted/50">
+                <TabsTrigger 
+                  value="signin"
+                  className="data-[state=active]:bg-background data-[state=active]:text-foreground"
                 >
-                  {mode === "signin" ? "Sign up" : "Sign in"}
-                </button>
-              </p>
-            </div>
+                  Sign In
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="signup"
+                  className="data-[state=active]:bg-background data-[state=active]:text-foreground"
+                >
+                  Sign Up
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="forgot"
+                  className="data-[state=active]:bg-background data-[state=active]:text-foreground"
+                >
+                  Forgot
+                </TabsTrigger>
+              </TabsList>
+
+              <div className="mt-8">
+                <TabsContent value="signin" className="mt-0 animate-fade-in">
+                  <div className="space-y-6">
+                    <div className="text-center lg:text-left">
+                      <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
+                      <p className="text-muted-foreground mt-2">
+                        Enter your credentials to access your dashboard
+                      </p>
+                    </div>
+                    <SignInForm onSuccess={handleAuthSuccess} />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="signup" className="mt-0 animate-fade-in">
+                  <div className="space-y-6">
+                    <div className="text-center lg:text-left">
+                      <h1 className="text-2xl font-bold text-foreground">Create your account</h1>
+                      <p className="text-muted-foreground mt-2">
+                        Get started with AI-powered lead automation
+                      </p>
+                    </div>
+                    <SignUpForm onSuccess={handleAuthSuccess} />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="forgot" className="mt-0 animate-fade-in">
+                  <div className="space-y-6">
+                    <div className="text-center lg:text-left">
+                      <h1 className="text-2xl font-bold text-foreground">Reset password</h1>
+                      <p className="text-muted-foreground mt-2">
+                        We'll help you get back into your account
+                      </p>
+                    </div>
+                    <ForgotPasswordForm />
+                  </div>
+                </TabsContent>
+              </div>
+            </Tabs>
           </div>
         </div>
       </div>
