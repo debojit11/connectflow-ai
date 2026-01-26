@@ -16,6 +16,16 @@ interface DynamicTableProps {
 
 // Field constants for status detection
 const STATUS_FIELDS = ["status", "aistatus", "approvalstatus"];
+
+// Case-insensitive helper to extract LinkedIn profile image URL
+function getImageUrl(row: Record<string, unknown>): string {
+  for (const key in row) {
+    if (key.toLowerCase() === "linkedinprofileimageurl") {
+      return String(row[key] ?? "");
+    }
+  }
+  return "";
+}
 const MESSAGE_STATUS_FIELD = "messagestatus";
 const CONNECTION_STATUS_FIELD = "connectionstatus";
 const PERSONALIZED_MESSAGE_FIELD = "personalizedmessage";
@@ -355,7 +365,7 @@ export function DynamicTable({
             <tbody>
             {paginatedData.map((row) => {
               const rowId = String(row.id);
-              const imageUrl = String(row.linkedinProfileImageUrl || "");
+              const imageUrl = getImageUrl(row);
 
               return (
                 <tr
