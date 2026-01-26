@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Play, Calendar, Clock } from "lucide-react";
+import { Play, Calendar, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -7,12 +7,14 @@ import { cn } from "@/lib/utils";
 
 interface AutomationCardProps {
   disabled?: boolean;
+  onStartPipeline?: () => Promise<boolean>;
 }
 
-export function AutomationCard({ disabled = false }: AutomationCardProps) {
+export function AutomationCard({ disabled = false, onStartPipeline }: AutomationCardProps) {
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState("09:00");
+  const [isStarting, setIsStarting] = useState(false);
 
   const timeSlots = [
     "06:00", "07:00", "08:00", "09:00", "10:00", "11:00",
@@ -20,14 +22,23 @@ export function AutomationCard({ disabled = false }: AutomationCardProps) {
     "18:00", "19:00", "20:00", "21:00"
   ];
 
-  const handleStartNow = () => {
-    console.log("Starting automation now...");
+  const handleStartNow = async () => {
+    if (!onStartPipeline) return;
+    
+    setIsStarting(true);
+    try {
+      await onStartPipeline();
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   const handleSaveSchedule = () => {
     console.log("Scheduling automation for:", selectedDate, selectedTime);
     setIsScheduleOpen(false);
   };
+
+  const isDisabled = disabled || isStarting;
 
   return (
     <>
@@ -39,23 +50,32 @@ export function AutomationCard({ disabled = false }: AutomationCardProps) {
         <div className="flex flex-wrap gap-3">
           <Button
             onClick={handleStartNow}
-            disabled={disabled}
+            disabled={isDisabled}
             className={cn(
               "gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow",
-              disabled && "opacity-50 cursor-not-allowed"
+              isDisabled && "opacity-50 cursor-not-allowed"
             )}
           >
-            <Play className="w-4 h-4" />
-            Start Now
+            {isStarting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Starting...
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4" />
+                Start Now
+              </>
+            )}
           </Button>
 
           <Button
             variant="outline"
             onClick={() => setIsScheduleOpen(true)}
-            disabled={disabled}
+            disabled={isDisabled}
             className={cn(
               "gap-2 border-border hover:bg-accent hover:text-accent-foreground",
-              disabled && "opacity-50 cursor-not-allowed"
+              isDisabled && "opacity-50 cursor-not-allowed"
             )}
           >
             <Calendar className="w-4 h-4" />

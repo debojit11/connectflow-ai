@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { authApi } from "@/lib/api";
 
 interface User {
   email: string;
@@ -28,7 +29,7 @@ interface AuthResponse {
   error?: string;
 }
 
-const TOKEN_KEY = "auth_token";
+const TOKEN_KEY = "token";
 const USER_KEY = "auth_user";
 const REMEMBER_KEY = "auth_remember";
 
@@ -57,6 +58,14 @@ export function useAuth() {
       } catch {
         clearAuth();
       }
+    } else if (token) {
+      // Token exists but no user data
+      setAuthState({
+        user: null,
+        token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
     } else {
       setAuthState(prev => ({ ...prev, isLoading: false }));
     }
@@ -76,40 +85,29 @@ export function useAuth() {
 
   const login = useCallback(async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch("/auth/login", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({
-      //     email: credentials.email,
-      //     password: credentials.password,
-      //   }),
-      // });
-      // const data = await response.json();
-      // if (!response.ok) throw new Error(data.message);
+      const response = await authApi.login(credentials.email, credentials.password);
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mock validation
-      if (!credentials.email || !credentials.password) {
-        return { success: false, error: "Email and password are required" };
+      if (response.error) {
+        return { success: false, error: response.error };
       }
 
-      // Mock successful login
-      const mockToken = `token_${Date.now()}`;
-      const mockUser = { email: credentials.email };
+      if (!response.data?.access_token) {
+        return { success: false, error: "No access token received" };
+      }
 
-      localStorage.setItem(TOKEN_KEY, mockToken);
-      localStorage.setItem(USER_KEY, JSON.stringify(mockUser));
+      const token = response.data.access_token;
+      const user = { email: credentials.email };
+
+      localStorage.setItem(TOKEN_KEY, token);
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
       
       if (credentials.rememberMe) {
         localStorage.setItem(REMEMBER_KEY, "true");
       }
 
       setAuthState({
-        user: mockUser,
-        token: mockToken,
+        user,
+        token,
         isAuthenticated: true,
         isLoading: false,
       });
@@ -125,22 +123,6 @@ export function useAuth() {
 
   const signup = useCallback(async (credentials: SignupCredentials): Promise<AuthResponse> => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch("/auth/signup", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({
-      //     email: credentials.email,
-      //     password: credentials.password,
-      //   }),
-      // });
-      // const data = await response.json();
-      // if (!response.ok) throw new Error(data.message);
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mock validation
       if (!credentials.email || !credentials.password) {
         return { success: false, error: "Email and password are required" };
       }
@@ -149,15 +131,21 @@ export function useAuth() {
         return { success: false, error: "Password must be at least 6 characters" };
       }
 
-      // Auto-login after signup
-      return login({ email: credentials.email, password: credentials.password });
+      const response = await authApi.signup(credentials.email, credentials.password);
+
+      if (response.error) {
+        return { success: false, error: response.error };
+      }
+
+      // On successful signup, return success (user should be redirected to login)
+      return { success: true };
     } catch (error) {
       return { 
         success: false, 
         error: error instanceof Error ? error.message : "Signup failed" 
       };
     }
-  }, [login]);
+  }, []);
 
   const logout = useCallback(() => {
     clearAuth();

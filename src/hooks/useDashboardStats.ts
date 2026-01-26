@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { dashboardApi } from "@/lib/api";
 
 export interface DashboardStats {
   totalLeadsGenerated: number;
@@ -17,20 +18,20 @@ export function useDashboardStats() {
   const fetchStats = useCallback(async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch("/dashboard/stats");
-      // const data = await response.json();
-      // invitesSent = count where connectionSent = 1
+      const response = await dashboardApi.getStats();
       
-      // Mock data
-      const mockStats: DashboardStats = {
-        totalLeadsGenerated: 12847,
-        aiApprovedLeads: 8432,
-        invitesSent: 3256,
-      };
+      if (response.data) {
+        const mappedStats: DashboardStats = {
+          totalLeadsGenerated: response.data.totalLeads,
+          aiApprovedLeads: response.data.approvedLeads,
+          invitesSent: response.data.invitesSent,
+        };
+        setStats(mappedStats);
+        return mappedStats;
+      }
       
-      setStats(mockStats);
-      return mockStats;
+      console.error("Failed to fetch dashboard stats:", response.error);
+      return null;
     } catch (error) {
       console.error("Failed to fetch dashboard stats:", error);
       return null;

@@ -43,6 +43,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
     setIsLoading(false);
 
     if (result.success) {
+      // On successful signup, call onSuccess to switch to login tab
       onSuccess();
     } else {
       setError(result.error || "Sign up failed. Please try again.");

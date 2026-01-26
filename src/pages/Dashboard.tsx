@@ -8,7 +8,7 @@ import { usePipelinePolling } from "@/hooks/usePipelinePolling";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 
 export default function Dashboard() {
-  const { pipelineStatus, isPipelineActive, isLoading: isPipelineLoading, refresh: refreshPipeline } = usePipelinePolling();
+  const { pipelineStatus, isPipelineActive, isLoading: isPipelineLoading, refresh: refreshPipeline, startPipeline } = usePipelinePolling();
   const { stats, isLoading: isStatsLoading, refresh: refreshStats } = useDashboardStats();
 
   const metrics = [
@@ -47,7 +47,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Automation Card */}
           <div className="lg:col-span-2 animate-slide-up" style={{ animationDelay: "300ms" }}>
-            <AutomationCard disabled={isPipelineActive} />
+            <AutomationCard disabled={isPipelineActive} onStartPipeline={startPipeline} />
           </div>
 
           {/* Pipeline Progress */}
