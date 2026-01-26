@@ -14,6 +14,8 @@ interface DynamicTableProps {
   isSendingAny?: boolean;
 }
 
+// Prioritize linkedinProfileImageUrl - the exact field from backend
+const PREFERRED_IMAGE_FIELD = "linkedinprofileimageurl";
 const IMAGE_FIELD_PATTERNS = ["linkedinprofileimageurl", "linkedinprofileimageurn", "profileimage", "imageurl", "avatar"];
 const STATUS_FIELDS = ["status", "aistatus", "approvalstatus"];
 const MESSAGE_STATUS_FIELD = "messagestatus";
@@ -22,6 +24,15 @@ const PERSONALIZED_MESSAGE_FIELD = "personalizedmessage";
 
 function findImageFieldKey(row: Record<string, unknown>): string | null {
   const keys = Object.keys(row);
+  
+  // First, look for the exact preferred field (case-insensitive)
+  for (const key of keys) {
+    if (key.toLowerCase() === PREFERRED_IMAGE_FIELD) {
+      return key;
+    }
+  }
+  
+  // Fallback to pattern matching
   for (const key of keys) {
     const lowerKey = key.toLowerCase();
     if (IMAGE_FIELD_PATTERNS.some(pattern => lowerKey.includes(pattern))) {
@@ -81,11 +92,13 @@ function MessageCell({
   );
 }
 
-function AvatarCell({ src }: { src: string }) {
+function AvatarCell({ src, name }: { src: string; name?: string }) {
+  const imgSrc = src && src.trim() !== "" ? src : "/placeholder.svg";
+  
   return (
     <img
-      src={src}
-      alt="Profile"
+      src={imgSrc}
+      alt={name ? `${name} profile` : "Profile"}
       className="w-10 h-10 rounded-full object-cover bg-muted flex-shrink-0"
       onError={(e) => {
         (e.target as HTMLImageElement).src = "/placeholder.svg";
@@ -384,13 +397,10 @@ export function DynamicTable({
                     {/* Avatar cell (first) */}
                     {hasImageField && (
                       <td className="table-cell w-14">
-                        {imageUrl ? (
-                          <AvatarCell src={String(imageUrl)} />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs">
-                            ?
-                          </div>
-                        )}
+                        <AvatarCell 
+                          src={imageUrl ? String(imageUrl) : ""} 
+                          name={row.firstName ? `${row.firstName} ${row.lastName || ""}` : undefined}
+                        />
                       </td>
                     )}
                     {columns.map((column) => (
