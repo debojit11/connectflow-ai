@@ -14,33 +14,14 @@ interface DynamicTableProps {
   isSendingAny?: boolean;
 }
 
-// Prioritize linkedinProfileImageUrl - the exact field from backend
-const PREFERRED_IMAGE_FIELD = "linkedinprofileimageurl";
-const IMAGE_FIELD_PATTERNS = ["linkedinprofileimageurl", "linkedinprofileimageurn", "profileimage", "imageurl", "avatar"];
+// Field constants for status detection
 const STATUS_FIELDS = ["status", "aistatus", "approvalstatus"];
 const MESSAGE_STATUS_FIELD = "messagestatus";
 const CONNECTION_STATUS_FIELD = "connectionstatus";
 const PERSONALIZED_MESSAGE_FIELD = "personalizedmessage";
 
-function findImageFieldKey(row: Record<string, unknown>): string | null {
-  const keys = Object.keys(row);
-  
-  // First, look for the exact preferred field (case-insensitive)
-  for (const key of keys) {
-    if (key.toLowerCase() === PREFERRED_IMAGE_FIELD) {
-      return key;
-    }
-  }
-  
-  // Fallback to pattern matching
-  for (const key of keys) {
-    const lowerKey = key.toLowerCase();
-    if (IMAGE_FIELD_PATTERNS.some(pattern => lowerKey.includes(pattern))) {
-      return key;
-    }
-  }
-  return null;
-}
+// Fields to exclude from dynamic columns (avatar is rendered separately)
+const EXCLUDED_COLUMNS = ["linkedinprofileimageurl"];
 
 function isStatusField(fieldName: string): boolean {
   const lowerName = fieldName.toLowerCase();
@@ -184,24 +165,13 @@ export function DynamicTable({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Find the image field key dynamically (case-insensitive)
-  const imageFieldKey = useMemo(() => {
-    for (const row of data) {
-      const key = findImageFieldKey(row);
-      if (key && row[key]) {
-        return key;
-      }
-    }
-    return null;
-  }, [data]);
-
-  const hasImageField = imageFieldKey !== null;
-
-  // Extract columns from data, excluding the image field (it will be first column separately)
+  // Extract columns from data, excluding the avatar field (it's always first column)
   const columns = useMemo(() => {
     if (data.length === 0) return [];
-    return Object.keys(data[0]).filter((key) => key !== imageFieldKey);
-  }, [data, imageFieldKey]);
+    return Object.keys(data[0]).filter(
+      (key) => !EXCLUDED_COLUMNS.includes(key.toLowerCase())
+    );
+  }, [data]);
 
   // Filter and sort data
   const processedData = useMemo(() => {
@@ -358,10 +328,8 @@ export function DynamicTable({
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                {/* Avatar column header (first) */}
-                {hasImageField && (
-                  <th className="table-header-cell w-14"></th>
-                )}
+                {/* Avatar column header (always first) */}
+                <th className="table-header-cell w-14"></th>
                 {columns.map((column) => (
                   <th
                     key={column}
@@ -385,24 +353,22 @@ export function DynamicTable({
               </tr>
             </thead>
             <tbody>
-              {paginatedData.map((row) => {
-                const rowId = String(row.id);
-                const imageUrl = imageFieldKey ? row[imageFieldKey] as string | undefined : undefined;
+            {paginatedData.map((row) => {
+              const rowId = String(row.id);
+              const imageUrl = String(row.linkedinProfileImageUrl || "");
 
-                return (
-                  <tr
-                    key={rowId}
-                    className="border-b border-border last:border-b-0 hover:bg-accent/30 transition-colors"
-                  >
-                    {/* Avatar cell (first) */}
-                    {hasImageField && (
-                      <td className="table-cell w-14">
-                        <AvatarCell 
-                          src={imageUrl ? String(imageUrl) : ""} 
-                          name={row.firstName ? `${row.firstName} ${row.lastName || ""}` : undefined}
-                        />
-                      </td>
-                    )}
+              return (
+                <tr
+                  key={rowId}
+                  className="border-b border-border last:border-b-0 hover:bg-accent/30 transition-colors"
+                >
+                  {/* Avatar cell (always first) */}
+                  <td className="table-cell w-14">
+                    <AvatarCell 
+                      src={imageUrl} 
+                      name={row.firstName ? `${row.firstName} ${row.lastName || ""}` : undefined}
+                    />
+                  </td>
                     {columns.map((column) => (
                       <td key={column} className="table-cell">
                         {renderCell(row, column)}
