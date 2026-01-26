@@ -1,12 +1,16 @@
 import { useState } from "react";
-import { User, Lock, LogOut, Mail, Building } from "lucide-react";
+import { User, Lock, LogOut, Mail, Building, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Settings() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
   const [accountInfo, setAccountInfo] = useState({
     name: "John Doe",
     email: "john@company.com",
@@ -19,18 +23,114 @@ export default function Settings() {
     confirmPassword: "",
   });
 
-  const handleAccountUpdate = (e: React.FormEvent) => {
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleAccountUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Updating account:", accountInfo);
+    setIsUpdatingProfile(true);
+    
+    try {
+      // TODO: Replace with actual API call
+      // await fetch("/user/update-profile", {
+      //   method: "PUT",
+      //   body: JSON.stringify(accountInfo),
+      // });
+      
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      toast({
+        title: "Profile Updated",
+        description: "Your account information has been saved.",
+      });
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingProfile(false);
+    }
   };
 
-  const handlePasswordReset = (e: React.FormEvent) => {
+  const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Resetting password");
+    
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({
+        title: "Passwords Don't Match",
+        description: "New password and confirmation must match.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsResettingPassword(true);
+    
+    try {
+      // TODO: Replace with actual API call
+      // await fetch("/user/reset-password", {
+      //   method: "PUT",
+      //   body: JSON.stringify({
+      //     currentPassword: passwordForm.currentPassword,
+      //     newPassword: passwordForm.newPassword,
+      //   }),
+      // });
+      
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      
+      toast({
+        title: "Password Updated",
+        description: "Your password has been changed successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Reset Failed",
+        description: "Failed to reset password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
-  const handleLogout = () => {
-    console.log("Logging out...");
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    
+    try {
+      // Clear token from localStorage
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user");
+      
+      // Simulate logout delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      
+      toast({
+        title: "Logged Out",
+        description: "You have been logged out successfully.",
+      });
+      
+      // Redirect to login (or home for now)
+      navigate("/");
+    } catch (error) {
+      toast({
+        title: "Logout Failed",
+        description: "Failed to logout. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -92,8 +192,19 @@ export default function Settings() {
               </div>
             </div>
 
-            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              Save Changes
+            <Button 
+              type="submit" 
+              disabled={isUpdatingProfile}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              {isUpdatingProfile ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </Button>
           </form>
         </div>
@@ -144,8 +255,19 @@ export default function Settings() {
               />
             </div>
 
-            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              Update Password
+            <Button 
+              type="submit" 
+              disabled={isResettingPassword}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              {isResettingPassword ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Password"
+              )}
             </Button>
           </form>
         </div>
@@ -168,9 +290,17 @@ export default function Settings() {
             <Button
               variant="outline"
               onClick={handleLogout}
+              disabled={isLoggingOut}
               className="border-destructive/30 text-destructive hover:bg-destructive/10"
             >
-              Logout
+              {isLoggingOut ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Logging out...
+                </>
+              ) : (
+                "Logout"
+              )}
             </Button>
           </div>
         </div>

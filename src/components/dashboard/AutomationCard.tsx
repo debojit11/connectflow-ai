@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { Play, Calendar, Clock, X } from "lucide-react";
+import { Play, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
-export function AutomationCard() {
+interface AutomationCardProps {
+  disabled?: boolean;
+}
+
+export function AutomationCard({ disabled = false }: AutomationCardProps) {
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState("09:00");
@@ -35,7 +39,11 @@ export function AutomationCard() {
         <div className="flex flex-wrap gap-3">
           <Button
             onClick={handleStartNow}
-            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow"
+            disabled={disabled}
+            className={cn(
+              "gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow",
+              disabled && "opacity-50 cursor-not-allowed"
+            )}
           >
             <Play className="w-4 h-4" />
             Start Now
@@ -44,12 +52,22 @@ export function AutomationCard() {
           <Button
             variant="outline"
             onClick={() => setIsScheduleOpen(true)}
-            className="gap-2 border-border hover:bg-accent hover:text-accent-foreground"
+            disabled={disabled}
+            className={cn(
+              "gap-2 border-border hover:bg-accent hover:text-accent-foreground",
+              disabled && "opacity-50 cursor-not-allowed"
+            )}
           >
             <Calendar className="w-4 h-4" />
             Schedule Recurring
           </Button>
         </div>
+
+        {disabled && (
+          <p className="text-sm text-muted-foreground mt-3">
+            Pipeline is currently running. Please wait for it to complete.
+          </p>
+        )}
       </div>
 
       <Dialog open={isScheduleOpen} onOpenChange={setIsScheduleOpen}>

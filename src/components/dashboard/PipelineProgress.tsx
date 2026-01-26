@@ -12,9 +12,14 @@ interface PipelineProgressProps {
 }
 
 export function PipelineProgress({ steps }: PipelineProgressProps) {
+  // Filter out "Invitations Sent" step if present
+  const filteredSteps = steps.filter(
+    (step) => step.name.toLowerCase() !== "invitations sent"
+  );
+
   return (
     <div className="space-y-1">
-      {steps.map((step, index) => (
+      {filteredSteps.map((step, index) => (
         <div key={step.name} className="flex items-center gap-4">
           {/* Status indicator */}
           <div className="flex flex-col items-center">
@@ -26,7 +31,7 @@ export function PipelineProgress({ steps }: PipelineProgressProps) {
                 step.status === "completed" && "bg-success"
               )}
             />
-            {index < steps.length - 1 && (
+            {index < filteredSteps.length - 1 && (
               <div
                 className={cn(
                   "w-0.5 h-8 transition-colors duration-300",
