@@ -175,7 +175,16 @@ export function DynamicTable({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Extract columns from data, excluding the avatar field (it's always first column)
+  // Check if data contains valid image URLs
+  const hasValidImages = useMemo(() => {
+    if (!data.length) return false;
+    return data.some((row) => {
+      const imageUrl = getImageUrl(row);
+      return imageUrl && imageUrl.startsWith("http");
+    });
+  }, [data]);
+
+  // Extract columns from data, excluding the avatar field (rendered separately if valid)
   const columns = useMemo(() => {
     if (data.length === 0) return [];
     return Object.keys(data[0]).filter(
@@ -338,8 +347,8 @@ export function DynamicTable({
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                {/* Avatar column header (always first) */}
-                <th className="table-header-cell w-14"></th>
+                {/* Avatar column header (only if valid images exist) */}
+                {hasValidImages && <th className="table-header-cell w-14"></th>}
                 {columns.map((column) => (
                   <th
                     key={column}
@@ -372,13 +381,15 @@ export function DynamicTable({
                   key={rowId}
                   className="border-b border-border last:border-b-0 hover:bg-accent/30 transition-colors"
                 >
-                  {/* Avatar cell (always first) */}
-                  <td className="table-cell w-14">
-                    <AvatarCell 
-                      src={imageUrl} 
-                      name={row.firstName ? `${row.firstName} ${row.lastName || ""}` : undefined}
-                    />
-                  </td>
+                  {/* Avatar cell (only if valid images exist) */}
+                  {hasValidImages && (
+                    <td className="table-cell w-14">
+                      <AvatarCell 
+                        src={imageUrl} 
+                        name={row.firstName ? `${row.firstName} ${row.lastName || ""}` : undefined}
+                      />
+                    </td>
+                  )}
                     {columns.map((column) => (
                       <td key={column} className="table-cell">
                         {renderCell(row, column)}
