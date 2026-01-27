@@ -91,8 +91,22 @@ function AvatarCell({ src, name }: { src: string; name?: string }) {
       src={imgSrc}
       alt={name ? `${name} profile` : "Profile"}
       className="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-border shadow-sm bg-card"
+      loading="lazy"
+      decoding="async"
+      // LinkedIn images can fail to load when the browser sends a referrer.
+      // Using no-referrer often fixes hotlinking restrictions without changing any table logic.
+      referrerPolicy="no-referrer"
+      crossOrigin="anonymous"
       onError={(e) => {
-        (e.target as HTMLImageElement).src = "/placeholder.svg";
+        const img = e.currentTarget;
+
+        // Helpful debugging: if this logs, the browser couldn't load the LinkedIn URL.
+        if (imgSrc && imgSrc !== "/placeholder.svg") {
+          console.warn("[AvatarCell] image failed to load", { imgSrc, name });
+        }
+
+        img.onerror = null;
+        img.src = "/placeholder.svg";
       }}
     />
   );
