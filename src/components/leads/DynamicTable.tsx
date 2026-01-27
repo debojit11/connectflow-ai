@@ -87,28 +87,26 @@ function AvatarCell({ src, name }: { src: string; name?: string }) {
   const imgSrc = src && src.trim() !== "" ? src : "/placeholder.svg";
   
   return (
-    <img
-      src={imgSrc}
-      alt={name ? `${name} profile` : "Profile"}
-      className="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-border shadow-sm bg-card"
-      loading="lazy"
-      decoding="async"
-      // LinkedIn images can fail to load when the browser sends a referrer.
-      // Using no-referrer often fixes hotlinking restrictions without changing any table logic.
-      referrerPolicy="no-referrer"
-      crossOrigin="anonymous"
-      onError={(e) => {
-        const img = e.currentTarget;
-
-        // Helpful debugging: if this logs, the browser couldn't load the LinkedIn URL.
-        if (imgSrc && imgSrc !== "/placeholder.svg") {
-          console.warn("[AvatarCell] image failed to load", { imgSrc, name });
-        }
-
-        img.onerror = null;
-        img.src = "/placeholder.svg";
-      }}
-    />
+    <div className="flex items-center justify-center">
+      <img
+        src={imgSrc}
+        alt={name ? `${name} profile` : "Profile"}
+        className="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-border/50 shadow-md bg-card ring-2 ring-background"
+        style={{ aspectRatio: '1 / 1' }}
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        crossOrigin="anonymous"
+        onError={(e) => {
+          const img = e.currentTarget;
+          if (imgSrc && imgSrc !== "/placeholder.svg") {
+            console.warn("[AvatarCell] image failed to load", { imgSrc, name });
+          }
+          img.onerror = null;
+          img.src = "/placeholder.svg";
+        }}
+      />
+    </div>
   );
 }
 
@@ -353,7 +351,7 @@ export function DynamicTable({
             <thead>
               <tr className="border-b border-border">
                 {/* Avatar column header (always first, before ID) */}
-                <th className="table-header-cell" style={{ width: 56, minWidth: 56, maxWidth: 56 }}></th>
+                <th className="table-header-cell" style={{ width: 64, minWidth: 64, maxWidth: 64 }}></th>
                 {columns.map((column) => (
                   <th
                     key={column}
@@ -387,7 +385,7 @@ export function DynamicTable({
                   className="border-b border-border last:border-b-0 hover:bg-accent/30 transition-colors"
                 >
                   {/* Avatar cell (always first, before ID) */}
-                  <td className="table-cell" style={{ width: 56, minWidth: 56, maxWidth: 56 }}>
+                  <td className="table-cell" style={{ width: 64, minWidth: 64, maxWidth: 64 }}>
                     <AvatarCell 
                       src={imageUrl} 
                       name={row.firstName ? `${row.firstName} ${row.lastName || ""}` : undefined}
