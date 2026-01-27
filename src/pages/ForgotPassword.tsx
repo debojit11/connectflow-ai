@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, Loader2, ArrowLeft, CheckCircle, Zap } from "lucide-react";
+import { Mail, Loader2, ArrowLeft, CheckCircle, Zap, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,19 +10,29 @@ import { authApi } from "@/lib/api";
 export default function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
     try {
-      await authApi.requestPasswordReset(email);
+      const response = await authApi.requestPasswordReset(email);
+      
+      // Check for network/server errors (status 0 means network error, 5xx means server error)
+      if (response.status === 0 || response.status >= 500) {
+        setError("Something went wrong. Please try again.");
+        return;
+      }
+      
+      // Always show success for security (don't reveal if email exists)
+      setSubmitted(true);
     } catch {
-      // Silently handle - we show same message regardless
+      setError("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
-      setSubmitted(true);
     }
   };
 
@@ -92,8 +102,7 @@ export default function ForgotPassword() {
                       <div className="space-y-2">
                         <p className="font-medium text-foreground">Check your email</p>
                         <p className="text-sm text-muted-foreground">
-                          If this email exists in our system, a reset link has been sent. 
-                          Please check your inbox and spam folder.
+                          If this email exists, a reset link has been sent. Please check your inbox.
                         </p>
                       </div>
                     </div>
@@ -121,6 +130,15 @@ export default function ForgotPassword() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
+                  {error && (
+                    <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
+                        <p className="text-sm text-destructive">{error}</p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-foreground">Email address</Label>
                     <div className="relative">
@@ -130,7 +148,10 @@ export default function ForgotPassword() {
                         type="email"
                         placeholder="you@company.com"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setError(null);
+                        }}
                         className="pl-10 bg-input border-border h-11"
                         required
                         disabled={isLoading}
