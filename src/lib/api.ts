@@ -157,5 +157,17 @@ export const inviteApi = {
 
 // User API calls
 export const userApi = {
-  // Password reset is now handled via email - use authApi.requestPasswordReset
+  getProfile: () =>
+    api<{ fullName: string; email: string; company: string }>("/auth/me"),
+
+  updateProfile: (data: { fullName: string; company: string }) =>
+    api<{ message: string }>("/auth/update-profile", {
+      method: "PUT",
+      body: data,
+    }),
+
+  sendResetLink: () =>
+    api<{ message: string }>("/user/send-reset-link", {
+      method: "POST",
+    }),
 };
