@@ -96,6 +96,20 @@ export const authApi = {
       body: { email, password },
       requiresAuth: false,
     }),
+
+  requestPasswordReset: (email: string) =>
+    api<{ message: string }>("/auth/request-password-reset", {
+      method: "POST",
+      body: { email },
+      requiresAuth: false,
+    }),
+
+  confirmPasswordReset: (token: string, newPassword: string) =>
+    api<{ message: string }>("/auth/confirm-password-reset", {
+      method: "POST",
+      body: { token, newPassword },
+      requiresAuth: false,
+    }),
 };
 
 // Dashboard API calls
@@ -143,9 +157,5 @@ export const inviteApi = {
 
 // User API calls
 export const userApi = {
-  resetPassword: (currentPassword: string, newPassword: string) =>
-    api<{ message: string }>("/user/reset-password", {
-      method: "PUT",
-      body: { currentPassword, newPassword },
-    }),
+  // Password reset is now handled via email - use authApi.requestPasswordReset
 };

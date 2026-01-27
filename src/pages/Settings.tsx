@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { User, Lock, LogOut, Mail, Building, Loader2 } from "lucide-react";
+import { User, Lock, LogOut, Mail, Building, Loader2, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { userApi } from "@/lib/api";
+import { authApi } from "@/lib/api";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -18,14 +18,8 @@ export default function Settings() {
     company: "Competitive AI",
   });
 
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isSendingResetLink, setIsSendingResetLink] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleAccountUpdate = async (e: React.FormEvent) => {
@@ -51,53 +45,23 @@ export default function Settings() {
     }
   };
 
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast({
-        title: "Passwords Don't Match",
-        description: "New password and confirmation must match.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsResettingPassword(true);
+  const handleSendResetLink = async () => {
+    setIsSendingResetLink(true);
     
     try {
-      const response = await userApi.resetPassword(
-        passwordForm.currentPassword,
-        passwordForm.newPassword
-      );
-
-      if (response.error) {
-        toast({
-          title: "Reset Failed",
-          description: response.error,
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
+      await authApi.requestPasswordReset(accountInfo.email);
       
       toast({
-        title: "Password Updated",
-        description: "Your password has been changed successfully.",
+        title: "Reset link sent",
+        description: "Check your email for a password reset link.",
       });
-    } catch (error) {
+    } catch {
       toast({
-        title: "Reset Failed",
-        description: "Failed to reset password. Please try again.",
-        variant: "destructive",
+        title: "Request sent",
+        description: "If this email exists, a reset link has been sent.",
       });
     } finally {
-      setIsResettingPassword(false);
+      setIsSendingResetLink(false);
     }
   };
 
@@ -203,7 +167,7 @@ export default function Settings() {
           </form>
         </div>
 
-        {/* Reset Password */}
+        {/* Password Reset via Email */}
         <div
           className="rounded-2xl bg-card border border-border p-6 glow-effect animate-slide-up"
           style={{ animationDelay: "100ms" }}
@@ -212,58 +176,34 @@ export default function Settings() {
             <div className="p-2 rounded-xl bg-primary/10 text-primary">
               <Lock className="w-5 h-5" />
             </div>
-            <h2 className="text-lg font-semibold text-foreground">Reset Password</h2>
+            <h2 className="text-lg font-semibold text-foreground">Password</h2>
           </div>
 
-          <form onSubmit={handlePasswordReset} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword" className="text-foreground">Current Password</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                value={passwordForm.currentPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="newPassword" className="text-foreground">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                className="bg-input border-border"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-foreground">Confirm New Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                className="bg-input border-border"
-              />
-            </div>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              For security reasons, password changes are handled via email verification. 
+              Click the button below to receive a secure reset link.
+            </p>
 
             <Button 
-              type="submit" 
-              disabled={isResettingPassword}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              onClick={handleSendResetLink}
+              disabled={isSendingResetLink}
+              variant="outline"
+              className="border-border"
             >
-              {isResettingPassword ? (
+              {isSendingResetLink ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Updating...
+                  Sending...
                 </>
               ) : (
-                "Update Password"
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Send Reset Link
+                </>
               )}
             </Button>
-          </form>
+          </div>
         </div>
 
         {/* Logout */}
