@@ -353,7 +353,7 @@ export function DynamicTable({
             <thead>
               <tr className="border-b border-border">
                 {/* Avatar column header (always first, before ID) */}
-                <th className="table-header-cell w-14"></th>
+                <th className="table-header-cell" style={{ width: 56, minWidth: 56, maxWidth: 56 }}></th>
                 {columns.map((column) => (
                   <th
                     key={column}
@@ -387,7 +387,7 @@ export function DynamicTable({
                   className="border-b border-border last:border-b-0 hover:bg-accent/30 transition-colors"
                 >
                   {/* Avatar cell (always first, before ID) */}
-                  <td className="table-cell w-14">
+                  <td className="table-cell" style={{ width: 56, minWidth: 56, maxWidth: 56 }}>
                     <AvatarCell 
                       src={imageUrl} 
                       name={row.firstName ? `${row.firstName} ${row.lastName || ""}` : undefined}
