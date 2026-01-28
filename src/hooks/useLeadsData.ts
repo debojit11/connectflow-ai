@@ -103,7 +103,7 @@ export function useLeadsData(options: UseLeadsDataOptions = {}) {
   }, [fetchAllLeads, fetchApprovedLeads, fetchReadyToInviteLeads]);
 
   // Send invite
-  const sendInvite = useCallback(async (leadId: string) => {
+  const sendInvite = useCallback(async (leadId: string, editedMessage: string) => {
     // Find the lead and check status
     const lead = readyToInviteLeads.find((l) => l.id === leadId);
     if (!lead || lead.connectionStatus !== "waiting_for_review") {
@@ -120,7 +120,7 @@ export function useLeadsData(options: UseLeadsDataOptions = {}) {
     );
 
     try {
-      const response = await inviteApi.send(leadId);
+      const response = await inviteApi.send(leadId, editedMessage);
       
       if (response.error) {
         console.error("Failed to send invite:", response.error);

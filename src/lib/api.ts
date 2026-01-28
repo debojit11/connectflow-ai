@@ -148,10 +148,10 @@ export const leadsApi = {
 
 // Invite API calls
 export const inviteApi = {
-  send: (leadId: string) =>
+  send: (leadId: string, editedMessage: string) =>
     api<{ message: string }>("/invite/send", {
       method: "POST",
-      body: { leadId },
+      body: { leadId, editedMessage },
     }),
 };
 
