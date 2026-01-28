@@ -243,7 +243,11 @@ export function DynamicTable({
   };
 
   const handleSendInvite = async (row: Record<string, unknown>) => {
-    await onSendInvite?.(row);
+    if (!onSendInvite) {
+      console.warn("DynamicTable: onSendInvite prop is undefined. Send action will not work.");
+      return;
+    }
+    await onSendInvite(row);
   };
 
   const renderCell = (row: Record<string, unknown>, column: string) => {

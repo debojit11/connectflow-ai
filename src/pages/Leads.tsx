@@ -24,7 +24,8 @@ export default function Leads() {
 
   const handleSendInvite = async (row: Record<string, unknown>) => {
     const leadId = String(row.id);
-    await sendInvite(leadId);
+    const editedMessage = String(row.personalizedMessage || "");
+    await sendInvite(leadId, editedMessage);
   };
 
   const handleMessageUpdate = (rowId: string, message: string) => {
