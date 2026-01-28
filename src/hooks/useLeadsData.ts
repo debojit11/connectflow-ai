@@ -103,6 +103,33 @@ export function useLeadsData(options: UseLeadsDataOptions = {}) {
     }
   }, [fetchAllLeads, fetchApprovedLeads, fetchReadyToInviteLeads]);
 
+  // Polling for status change after clicking Send Invite
+  const pollForStatusChange = useCallback(async (leadId: string): Promise<boolean> => {
+    const MAX_ATTEMPTS = 4;
+    const POLL_INTERVAL = 30000; // 30 seconds
+    
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      console.log(`Polling attempt ${attempt + 1}/${MAX_ATTEMPTS} for lead ${leadId}`);
+      
+      const leads = await fetchReadyToInviteLeads();
+      const lead = leads.find((l) => l.id === leadId);
+      
+      // Stop polling if connectionStatus changed to "sending"
+      if (lead?.connectionStatus === "sending") {
+        console.log("Detected connectionStatus = 'sending', stopping poll");
+        return true;
+      }
+      
+      // If this isn't the last attempt, wait before next poll
+      if (attempt < MAX_ATTEMPTS - 1) {
+        await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
+      }
+    }
+    
+    console.log("Max polling attempts reached");
+    return false;
+  }, [fetchReadyToInviteLeads]);
+
   // Send invite - uses draft message if available, otherwise falls back to original
   const sendInvite = useCallback(async (leadId: string, originalMessage: string) => {
     // Use draft if exists, otherwise use original message from row
@@ -111,27 +138,19 @@ export function useLeadsData(options: UseLeadsDataOptions = {}) {
     console.log("Sending invite:", { leadId, messageToSend, isDraft: leadId in draftMessages });
     
     setIsSendingInvite(true);
-    
-    // Update local state to "sending" for the specific lead
-    setReadyToInviteLeads((prev) =>
-      prev.map((l) =>
-        l.id === leadId ? { ...l, connectionStatus: "sending" } : l
-      )
-    );
+
+    // Start polling immediately (runs in background)
+    const pollingPromise = pollForStatusChange(leadId);
 
     try {
       const response = await inviteApi.send(leadId, messageToSend);
       
       if (response.error) {
         console.error("Failed to send invite:", response.error);
-        // Revert status on error
-        setReadyToInviteLeads((prev) =>
-          prev.map((l) =>
-            l.id === leadId ? { ...l, connectionStatus: "not_sent" } : l
-          )
-        );
         return false;
       }
+      
+      console.log("Backend responded, webhook complete:", response.data);
       
       // Clear draft after successful send
       setDraftMessages((prev) => {
@@ -140,23 +159,20 @@ export function useLeadsData(options: UseLeadsDataOptions = {}) {
         return updated;
       });
       
-      // After success, refresh the ready to invite data
+      // Wait for any ongoing polling to finish, then do final refresh
+      await pollingPromise;
+      
+      // Final refresh after backend response to reflect n8n's status update
       await fetchReadyToInviteLeads();
       
       return true;
     } catch (error) {
       console.error("Failed to send invite:", error);
-      // Revert status on error
-      setReadyToInviteLeads((prev) =>
-        prev.map((l) =>
-          l.id === leadId ? { ...l, connectionStatus: "not_sent" } : l
-        )
-      );
       return false;
     } finally {
       setIsSendingInvite(false);
     }
-  }, [draftMessages, fetchReadyToInviteLeads]);
+  }, [draftMessages, fetchReadyToInviteLeads, pollForStatusChange]);
 
   // Update draft message - does NOT mutate readyToInviteLeads
   const updateDraftMessage = useCallback((leadId: string, message: string) => {
