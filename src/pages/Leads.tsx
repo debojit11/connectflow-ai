@@ -17,19 +17,22 @@ export default function Leads() {
     isLoading,
     isSendingInvite,
     hasRowSending,
+    draftMessages,
     refreshAll,
     sendInvite,
-    updateMessage,
+    updateDraftMessage,
+    getDisplayMessage,
   } = useLeadsData({ isPipelineActive });
 
   const handleSendInvite = async (row: Record<string, unknown>) => {
     const leadId = String(row.id);
-    const editedMessage = String(row.personalizedMessage || "");
-    await sendInvite(leadId, editedMessage);
+    const originalMessage = String(row.personalizedMessage || "");
+    // sendInvite will use draft if available, otherwise original
+    await sendInvite(leadId, originalMessage);
   };
 
-  const handleMessageUpdate = (rowId: string, message: string) => {
-    updateMessage(rowId, message);
+  const handleDraftUpdate = (rowId: string, message: string) => {
+    updateDraftMessage(rowId, message);
   };
 
   return (
@@ -104,8 +107,10 @@ export default function Leads() {
           <TabsContent value="ready" className="animate-fade-in">
             <DynamicTable
               data={readyToInviteLeads}
+              draftMessages={draftMessages}
+              getDisplayMessage={getDisplayMessage}
               onSendInvite={handleSendInvite}
-              onMessageUpdate={handleMessageUpdate}
+              onDraftUpdate={handleDraftUpdate}
               onRefresh={refreshAll}
               showSendAction
               isLoading={isLoading}

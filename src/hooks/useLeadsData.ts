@@ -33,6 +33,7 @@ export function useLeadsData(options: UseLeadsDataOptions = {}) {
   const [readyToInviteLeads, setReadyToInviteLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [draftMessages, setDraftMessages] = useState<Record<string, string>>({});
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch all leads
@@ -102,10 +103,12 @@ export function useLeadsData(options: UseLeadsDataOptions = {}) {
     }
   }, [fetchAllLeads, fetchApprovedLeads, fetchReadyToInviteLeads]);
 
-  // Send invite
-  const sendInvite = useCallback(async (leadId: string, editedMessage: string) => {
-    // Always attempt to send - backend handles all validation
-    console.log("Sending invite:", { leadId, editedMessage });
+  // Send invite - uses draft message if available, otherwise falls back to original
+  const sendInvite = useCallback(async (leadId: string, originalMessage: string) => {
+    // Use draft if exists, otherwise use original message from row
+    const messageToSend = draftMessages[leadId] ?? originalMessage;
+    
+    console.log("Sending invite:", { leadId, messageToSend, isDraft: leadId in draftMessages });
     
     setIsSendingInvite(true);
     
@@ -117,7 +120,7 @@ export function useLeadsData(options: UseLeadsDataOptions = {}) {
     );
 
     try {
-      const response = await inviteApi.send(leadId, editedMessage);
+      const response = await inviteApi.send(leadId, messageToSend);
       
       if (response.error) {
         console.error("Failed to send invite:", response.error);
@@ -129,6 +132,13 @@ export function useLeadsData(options: UseLeadsDataOptions = {}) {
         );
         return false;
       }
+      
+      // Clear draft after successful send
+      setDraftMessages((prev) => {
+        const updated = { ...prev };
+        delete updated[leadId];
+        return updated;
+      });
       
       // After success, refresh the ready to invite data
       await fetchReadyToInviteLeads();
@@ -146,16 +156,20 @@ export function useLeadsData(options: UseLeadsDataOptions = {}) {
     } finally {
       setIsSendingInvite(false);
     }
-  }, [readyToInviteLeads, fetchReadyToInviteLeads]);
+  }, [draftMessages, fetchReadyToInviteLeads]);
 
-  // Update message
-  const updateMessage = useCallback((leadId: string, message: string) => {
-    setReadyToInviteLeads((prev) =>
-      prev.map((l) =>
-        l.id === leadId ? { ...l, personalizedMessage: message } : l
-      )
-    );
+  // Update draft message - does NOT mutate readyToInviteLeads
+  const updateDraftMessage = useCallback((leadId: string, message: string) => {
+    setDraftMessages((prev) => ({
+      ...prev,
+      [leadId]: message,
+    }));
   }, []);
+
+  // Get display message - returns draft if exists, otherwise original
+  const getDisplayMessage = useCallback((leadId: string, originalMessage: string): string => {
+    return draftMessages[leadId] ?? originalMessage;
+  }, [draftMessages]);
 
   // Polling effect - only when pipeline is active
   useEffect(() => {
@@ -185,8 +199,10 @@ export function useLeadsData(options: UseLeadsDataOptions = {}) {
     isLoading,
     isSendingInvite,
     hasRowSending,
+    draftMessages,
     refreshAll,
     sendInvite,
-    updateMessage,
+    updateDraftMessage,
+    getDisplayMessage,
   };
 }

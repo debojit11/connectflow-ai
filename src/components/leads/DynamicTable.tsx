@@ -6,8 +6,10 @@ import { cn } from "@/lib/utils";
 
 interface DynamicTableProps {
   data: Record<string, unknown>[];
+  draftMessages?: Record<string, string>;
+  getDisplayMessage?: (leadId: string, originalMessage: string) => string;
   onSendInvite?: (row: Record<string, unknown>) => Promise<void>;
-  onMessageUpdate?: (rowId: string, message: string) => void;
+  onDraftUpdate?: (rowId: string, message: string) => void;
   onRefresh?: () => void;
   showSendAction?: boolean;
   isLoading?: boolean;
@@ -51,26 +53,25 @@ function getStatusBadgeClass(value: string): string {
 }
 
 function MessageCell({ 
-  value, 
+  displayValue, 
   rowId, 
-  onUpdate 
+  onDraftUpdate 
 }: { 
-  value: string; 
+  displayValue: string; 
   rowId: string; 
-  onUpdate?: (rowId: string, message: string) => void;
+  onDraftUpdate?: (rowId: string, message: string) => void;
 }) {
-  const [message, setMessage] = useState(value || "");
-  const charCount = message.length;
+  // Display value comes from parent (draft or original)
+  const charCount = displayValue.length;
   const isOverLimit = charCount > 200;
 
   return (
     <div className="space-y-1">
       <textarea
-        value={message}
+        value={displayValue}
         onChange={(e) => {
           const newValue = e.target.value;
-          setMessage(newValue);
-          onUpdate?.(rowId, newValue);
+          onDraftUpdate?.(rowId, newValue);
         }}
         className={cn(
           "w-full min-w-[200px] p-2 rounded-lg bg-input border text-sm resize-none",
@@ -181,8 +182,10 @@ function ActionCell({
 
 export function DynamicTable({ 
   data, 
+  draftMessages = {},
+  getDisplayMessage,
   onSendInvite, 
-  onMessageUpdate, 
+  onDraftUpdate, 
   onRefresh,
   showSendAction,
   isLoading = false,
@@ -268,13 +271,18 @@ export function DynamicTable({
       return <span className={getStatusBadgeClass(String(value))}>{String(value)}</span>;
     }
 
-    // Personalized message
+    // Personalized message - use draft if available
     if (lowerColumn === PERSONALIZED_MESSAGE_FIELD) {
+      const originalMessage = String(value || "");
+      const displayValue = getDisplayMessage 
+        ? getDisplayMessage(rowId, originalMessage) 
+        : (draftMessages[rowId] ?? originalMessage);
+      
       return (
         <MessageCell
-          value={String(value || "")}
+          displayValue={displayValue}
           rowId={rowId}
-          onUpdate={onMessageUpdate}
+          onDraftUpdate={onDraftUpdate}
         />
       );
     }
