@@ -104,12 +104,9 @@ export function useLeadsData(options: UseLeadsDataOptions = {}) {
 
   // Send invite
   const sendInvite = useCallback(async (leadId: string, editedMessage: string) => {
-    // Find the lead and check status
-    const lead = readyToInviteLeads.find((l) => l.id === leadId);
-    if (!lead || lead.connectionStatus !== "waiting_for_review") {
-      return false;
-    }
-
+    // Always attempt to send - backend handles all validation
+    console.log("Sending invite:", { leadId, editedMessage });
+    
     setIsSendingInvite(true);
     
     // Update local state to "sending" for the specific lead
