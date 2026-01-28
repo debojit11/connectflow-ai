@@ -67,8 +67,11 @@ function MessageCell({
     <div className="space-y-1">
       <textarea
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onBlur={() => onUpdate?.(rowId, message)}
+        onChange={(e) => {
+          const newValue = e.target.value;
+          setMessage(newValue);
+          onUpdate?.(rowId, newValue);
+        }}
         className={cn(
           "w-full min-w-[200px] p-2 rounded-lg bg-input border text-sm resize-none",
           "focus:outline-none focus:ring-2 focus:ring-ring",
