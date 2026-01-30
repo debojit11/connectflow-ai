@@ -6,10 +6,19 @@ import { PipelineProgress } from "@/components/dashboard/PipelineProgress";
 import { Button } from "@/components/ui/button";
 import { usePipelinePolling } from "@/hooks/usePipelinePolling";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useSchedules } from "@/hooks/useSchedules";
 
 export default function Dashboard() {
   const { pipelineStatus, isPipelineActive, isLoading: isPipelineLoading, refresh: refreshPipeline, startPipeline } = usePipelinePolling();
   const { stats, isLoading: isStatsLoading, refresh: refreshStats } = useDashboardStats();
+  const { 
+    schedules, 
+    isLoading: isLoadingSchedules, 
+    isCreating: isCreatingSchedule, 
+    isDeleting: isDeletingSchedule,
+    createSchedule,
+    deleteSchedule,
+  } = useSchedules();
 
   const metrics = [
     { title: "Total Leads Generated", value: stats.totalLeadsGenerated, icon: Users, trend: { value: 12.5, positive: true } },
@@ -47,7 +56,16 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Automation Card */}
           <div className="lg:col-span-2 animate-slide-up" style={{ animationDelay: "300ms" }}>
-            <AutomationCard disabled={isPipelineActive} onStartPipeline={startPipeline} />
+            <AutomationCard 
+              disabled={isPipelineActive} 
+              onStartPipeline={startPipeline}
+              schedules={schedules}
+              isLoadingSchedules={isLoadingSchedules}
+              isDeletingSchedule={isDeletingSchedule}
+              isCreatingSchedule={isCreatingSchedule}
+              onCreateSchedule={createSchedule}
+              onDeleteSchedule={deleteSchedule}
+            />
           </div>
 
           {/* Pipeline Progress */}
