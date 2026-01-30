@@ -16,21 +16,8 @@ export function useSchedules() {
         console.error("Failed to fetch schedules:", response.error);
         return;
       }
-      // Filter to only show active and future schedules
-      const now = new Date();
-      const activeSchedules = (response.data || []).filter((schedule) => {
-        if (!schedule.active) return false;
-        
-        // For one-time schedules, check if run_at is in the future
-        if (schedule.type === "one_time" && schedule.run_at) {
-          return new Date(schedule.run_at) > now;
-        }
-        
-        // Recurring schedules are always shown if active
-        return true;
-      });
-      
-      setSchedules(activeSchedules);
+      // Backend already filters for active and future schedules
+      setSchedules(response.data || []);
     } catch (error) {
       console.error("Failed to fetch schedules:", error);
     } finally {
