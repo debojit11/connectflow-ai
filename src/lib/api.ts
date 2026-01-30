@@ -158,7 +158,7 @@ export interface Schedule {
 }
 
 export const scheduleApi = {
-  create: (data: { type: "one_time" | "recurring"; cron_expression?: string; run_at?: string }) =>
+  create: (data: { type: "one_time"; runAt: string } | { type: "recurring"; cron: string }) =>
     api<{ message: string; schedule_id: string }>("/pipeline/schedule", {
       method: "POST",
       body: data,

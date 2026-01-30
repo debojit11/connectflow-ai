@@ -38,11 +38,9 @@ export function useSchedules() {
     }
   }, []);
 
-  const createSchedule = useCallback(async (data: { 
-    type: "one_time" | "recurring"; 
-    cron_expression?: string; 
-    run_at?: string 
-  }) => {
+  const createSchedule = useCallback(async (
+    data: { type: "one_time"; runAt: string } | { type: "recurring"; cron: string }
+  ) => {
     setIsCreating(true);
     try {
       const response = await scheduleApi.create(data);

@@ -13,7 +13,7 @@ interface AutomationCardProps {
   isLoadingSchedules: boolean;
   isDeletingSchedule: string | null;
   isCreatingSchedule: boolean;
-  onCreateSchedule: (data: { type: "one_time" | "recurring"; cron_expression?: string; run_at?: string }) => Promise<boolean>;
+  onCreateSchedule: (data: { type: "one_time"; runAt: string } | { type: "recurring"; cron: string }) => Promise<boolean>;
   onDeleteSchedule: (scheduleId: string) => void;
 }
 
