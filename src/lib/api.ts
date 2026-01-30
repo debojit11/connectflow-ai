@@ -146,6 +146,33 @@ export const leadsApi = {
     api<Array<Record<string, unknown>>>("/leads/ready"),
 };
 
+// Schedule API calls
+export interface Schedule {
+  id: string;
+  type: "one_time" | "recurring";
+  cron_expression?: string;
+  run_at?: string;
+  next_run?: string;
+  created_at: string;
+  active: boolean;
+}
+
+export const scheduleApi = {
+  create: (data: { type: "one_time" | "recurring"; cron_expression?: string; run_at?: string }) =>
+    api<{ message: string; schedule_id: string }>("/pipeline/schedule", {
+      method: "POST",
+      body: data,
+    }),
+
+  list: () =>
+    api<Schedule[]>("/pipeline/schedule"),
+
+  delete: (scheduleId: string) =>
+    api<{ message: string }>(`/pipeline/schedule/${scheduleId}`, {
+      method: "DELETE",
+    }),
+};
+
 // Invite API calls
 export const inviteApi = {
   send: (leadId: string, editedMessage: string) =>
