@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 interface ScheduleModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSchedule: (data: { type: "one_time" | "recurring"; cron_expression?: string; run_at?: string }) => Promise<boolean>;
+  onSchedule: (data: { type: "one_time"; runAt: string } | { type: "recurring"; cron: string }) => Promise<boolean>;
   isCreating: boolean;
 }
 
@@ -106,12 +106,12 @@ export function ScheduleModal({ open, onOpenChange, onSchedule, isCreating }: Sc
       
       // Combine date and time into ISO string
       const [hour, minute] = selectedTime.split(":").map(Number);
-      const runAt = new Date(selectedDate);
-      runAt.setHours(hour, minute, 0, 0);
+      const runAtDate = new Date(selectedDate);
+      runAtDate.setHours(hour, minute, 0, 0);
       
       const success = await onSchedule({
         type: "one_time",
-        run_at: runAt.toISOString(),
+        runAt: runAtDate.toISOString(),
       });
       
       if (success) {
@@ -121,9 +121,11 @@ export function ScheduleModal({ open, onOpenChange, onSchedule, isCreating }: Sc
     } else {
       const cronExpression = generateCronExpression();
       
+      if (!cronExpression) return;
+      
       const success = await onSchedule({
         type: "recurring",
-        cron_expression: cronExpression,
+        cron: cronExpression,
       });
       
       if (success) {
