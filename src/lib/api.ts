@@ -165,7 +165,7 @@ export const scheduleApi = {
     }),
 
   list: () =>
-    api<Schedule[]>("/pipeline/schedule"),
+    api<Schedule[]>("/pipeline/schedules"),
 
   delete: (scheduleId: string) =>
     api<{ message: string }>(`/pipeline/schedule/${scheduleId}`, {
