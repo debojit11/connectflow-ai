@@ -148,13 +148,10 @@ export const leadsApi = {
 
 // Schedule API calls
 export interface Schedule {
-  id: string;
+  _id: string;
   type: "one_time" | "recurring";
-  cron_expression?: string;
-  run_at?: string;
-  next_run?: string;
-  created_at: string;
-  active: boolean;
+  cron?: string;
+  runAt?: string;
 }
 
 export const scheduleApi = {

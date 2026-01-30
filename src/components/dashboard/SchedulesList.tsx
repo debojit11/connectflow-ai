@@ -1,5 +1,5 @@
 import { format, parseISO } from "date-fns";
-import { Calendar, Clock, Repeat, Trash2, Loader2 } from "lucide-react";
+import { Calendar, Repeat, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Schedule } from "@/lib/api";
@@ -75,16 +75,11 @@ function ScheduleItem({
   let summary = "";
   let nextRunDisplay = "";
 
-  if (isOneTime && schedule.run_at) {
-    const runDate = parseISO(schedule.run_at);
+  if (isOneTime && schedule.runAt) {
+    const runDate = parseISO(schedule.runAt);
     summary = format(runDate, "MMMM d, yyyy 'at' h:mm a");
-  } else if (schedule.cron_expression) {
-    summary = parseCronToHuman(schedule.cron_expression);
-  }
-
-  if (schedule.next_run) {
-    const nextRun = parseISO(schedule.next_run);
-    nextRunDisplay = format(nextRun, "MMM d, h:mm a");
+  } else if (schedule.cron) {
+    summary = parseCronToHuman(schedule.cron);
   }
 
   return (
@@ -106,12 +101,6 @@ function ScheduleItem({
             </span>
           </div>
           <p className="text-sm font-medium text-foreground mt-1 truncate">{summary}</p>
-          {!isOneTime && nextRunDisplay && (
-            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              Next: {nextRunDisplay}
-            </p>
-          )}
         </div>
       </div>
       <Button
@@ -157,10 +146,10 @@ export function SchedulesList({ schedules, isLoading, isDeleting, onDelete }: Sc
       <div className="space-y-2 pr-4">
         {schedules.map((schedule) => (
           <ScheduleItem
-            key={schedule.id}
+            key={schedule._id}
             schedule={schedule}
-            isDeleting={isDeleting === schedule.id}
-            onDelete={() => onDelete(schedule.id)}
+            isDeleting={isDeleting === schedule._id}
+            onDelete={() => onDelete(schedule._id)}
           />
         ))}
       </div>
